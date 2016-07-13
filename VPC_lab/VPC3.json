@@ -1,0 +1,447 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+        "KeyName": {
+                "Description": "Key Pair name",
+                "Type": "AWS::EC2::KeyPair::KeyName",
+                "Default": "mykey"
+        }
+   },
+  "Mappings": {
+          "EC2RegionMap": {
+                            "ap-northeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-cbf90ecb"},
+                            "ap-southeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-68d8e93a"},
+                            "ap-southeast-2": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-fd9cecc7"},
+                            "eu-central-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-a8221fb5"},
+                            "eu-west-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-a10897d6"},
+                            "sa-east-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-b52890a8"},
+                            "us-east-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-08111162"},
+                            "us-west-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-d114f295"},
+                            "us-west-2": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-e7527ed7"}
+                            }
+   },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "myVPC"
+          }
+        ]
+      }
+    },
+    "SubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/24",
+        "MapPublicIpOnLaunch": "false",
+        "AvailabilityZone": "us-east-1a",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Subnet"
+          }
+        ]
+      }
+    },
+    "SubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "10.0.1.0/24",
+        "MapPublicIpOnLaunch": "true",
+        "AvailabilityZone": "us-east-1a",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Subnet"
+          }
+        ]
+      }
+    },
+    "IGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "myIGW"
+          }
+        ]
+      }
+    },
+    "DHCPOptions": {
+      "Type": "AWS::EC2::DHCPOptions",
+      "Properties": {
+        "DomainName": "ec2.internal",
+        "DomainNameServers": [
+          "AmazonProvidedDNS"
+        ]
+      }
+    },
+    "NetworkAcl": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "RouteTableA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Route"
+          }
+        ]
+      }
+    },
+    "RouteTableB": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Route"
+          }
+        ]
+      }
+    },
+    "EIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "SecurityGroupA": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security Group for Private Subnet",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private SG"
+          }
+        ]
+      }
+    },
+    "SecurityGroupB": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security Group for Public Subnet",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public SG"
+          }
+        ]
+      }
+    },
+    "NetworkAclEntry1": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": "true",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "NetworkAcl"
+        }
+      }
+    },
+    "NetworkAclEntry2": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "NetworkAcl"
+        }
+      }
+    },
+    "SubnetNetworkAclAssociationA": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "NetworkAcl"
+        },
+        "SubnetId": {
+          "Ref": "SubnetA"
+        }
+      }
+    },
+    "SubnetNetworkAclAssociationB": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "NetworkAcl"
+        },
+        "SubnetId": {
+          "Ref": "SubnetB"
+        }
+      }
+    },
+    "VPCGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "IGW"
+        }
+      }
+    },
+    "SubnetRouteTableAssociationA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTableA"
+        },
+        "SubnetId": {
+          "Ref": "SubnetA"
+        }
+      }
+    },
+    "SubnetRouteTableAssociationB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTableB"
+        },
+        "SubnetId": {
+          "Ref": "SubnetB"
+        }
+      }
+    },
+    "RouteA": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "RouteTableA"
+        },
+        "NatGatewayId": {
+          "Ref": "NAT"
+        }          
+      },
+      "DependsOn": "VPCGatewayAttachment"
+    },
+    "RouteB": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "RouteTableB"
+        },
+        "GatewayId": {
+          "Ref": "IGW"
+        }
+      },
+      "DependsOn": "VPCGatewayAttachment"
+    },
+    "VPCDHCPOptionsAssociation": {
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "DhcpOptionsId": {
+          "Ref": "DHCPOptions"
+        }
+      }
+    },
+    "SecurityGroupIngress1": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "SecurityGroupA"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "SourceSecurityGroupId": {
+          "Ref": "SecurityGroupB"
+        },
+        "SourceSecurityGroupOwnerId": "361692773709"
+      }
+    },
+    "SecurityGroupIngress2": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "SecurityGroupB"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "SecurityGroupIngress3": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "SecurityGroupB"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "SecurityGroupEgress1": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "SecurityGroupA"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "SecurityGroupEgress2": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "SecurityGroupB"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "NAT": {
+      "DependsOn" : "VPCGatewayAttachment",
+      "Type" : "AWS::EC2::NatGateway",
+      "Properties" : {
+        "AllocationId" : { 
+          "Fn::GetAtt" : ["EIP", "AllocationId"]
+         },
+        "SubnetId" : { 
+          "Ref" : "SubnetB"
+        }
+      }
+    },
+    "PrivateInstance": {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "ImageId": {"Fn::FindInMap": ["EC2RegionMap", {"Ref": "AWS::Region"}, "AmazonLinuxAMIHVMEBSBacked64bit"]},
+        "InstanceType" : "t2.nano",
+        "KeyName" : "mykey",
+        "SecurityGroupIds" : [ { "Ref" : "SecurityGroupA" } ],
+        "SubnetId" : { "Ref" : "SubnetA" }
+      }
+    },
+    "PublicInstance": {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "ImageId": {"Fn::FindInMap": ["EC2RegionMap", {"Ref": "AWS::Region"}, "AmazonLinuxAMIHVMEBSBacked64bit"]},
+        "InstanceType" : "t2.nano",
+        "KeyName" : "mykey",
+        "SecurityGroupIds" : [ { "Ref" : "SecurityGroupB" } ],
+        "SubnetId" :  { "Ref" : "SubnetB" }
+      }
+    },
+    "LambdaRole": {
+              "Type": "AWS::IAM::Role",
+              "Properties": {
+                  "AssumeRolePolicyDocument": {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                          {
+                              "Effect": "Allow",
+                              "Principal": {
+                                  "Service": "lambda.amazonaws.com"
+                              },
+                              "Action": "sts:AssumeRole"
+                          }
+                      ]
+                  },
+                  "Path": "/",
+                  "Policies": [
+                      {
+                          "PolicyName": "DescribeInstancePermissions",
+                          "PolicyDocument": {
+                              "Version": "2012-10-17",
+                              "Statement": [
+                                  {
+                                      "Effect": "Allow",
+                                      "Action": [
+                                          "logs:CreateLogGroup",
+                                          "logs:CreateLogStream",
+                                          "logs:PutLogEvents"
+                                      ],
+                                      "Resource": "arn:aws:logs:*:*:*"
+                                  },
+                                  {
+                                      "Effect": "Allow",
+                                      "Action": [
+                                          "ec2:DescribeInstances"
+                                      ],
+                                      "Resource": "*"
+                                  }
+                              ]
+                          }
+                      }
+                  ]
+              }
+          },
+    "DescribeInstancesLambda": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+            "Handler": "mylambda.lambda_handler",
+            "Role": {
+                "Fn::GetAtt": [
+                    "LambdaRole",
+                    "Arn"
+                ]
+            },
+            "Description": "This function will list instance IDs and their state.",
+            "Code": {
+                "S3Bucket": "mylabs-cmalone",
+                "S3Key": "lambda.zip"
+            },
+            "Runtime": "python2.7",
+            "Timeout": "120"
+        }
+    }
+  },
+  "Outputs": {
+               "PublicDnsName": {
+                                 "Value": {"Fn::GetAtt": ["PublicInstance", "PublicDnsName"]},
+                                 "Description": "Public server DNS name"
+                },
+                "PrivateDnsName": {"Value": {"Fn::GetAtt": ["PublicInstance", "PrivateDnsName"]},
+                                   "Description": "Private server internal DNS name"
+                }
+        },
+  "Description": "VPC - Public/Private with NAT"
+}

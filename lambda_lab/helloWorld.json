@@ -1,0 +1,81 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Test custom resource",
+	"Resources": {
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "lambda.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Path": "/",
+				"Policies": [{
+					"PolicyName": "DescribeInstancePermissions",
+					"PolicyDocument": {
+						"Version": "2012-10-17",
+						"Statement": [{
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents"
+							],
+							"Resource": "arn:aws:logs:*:*:*"
+						}, {
+							"Effect": "Allow",
+							"Action": [
+								"ec2:DescribeInstances"
+							],
+							"Resource": "*"
+						}]
+					}
+				}]
+			}
+		},
+		"HelloWorldLambda": {
+      "Description": "Hello World",
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "helloWorld.lambda_handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"S3Bucket": {
+						"Fn::Join": [".", ["surefoot.develop", {
+							"Ref": "AWS::Region"
+						}]]
+					},
+					"S3Key": "helloWorld.zip"
+				},
+				"Runtime": "python2.7",
+				"Timeout": "120"
+			}
+		},
+		"CustomResource": {
+			"Type": "Custom::CustomResource",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": ["HelloWorldLambda", "Arn"]
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"LambdaResponse": {
+			"Value": {
+				"Fn::GetAtt": ["CustomResource", "Response"]
+			}
+		}
+	}
+}

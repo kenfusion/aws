@@ -1,0 +1,79 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Deploy DescribeInstancesLambda",
+	"Resources": {
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "lambda.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Path": "/",
+				"Policies": [{
+					"PolicyName": "DescribeInstancePermissions",
+					"PolicyDocument": {
+						"Version": "2012-10-17",
+						"Statement": [{
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents"
+							],
+							"Resource": "arn:aws:logs:*:*:*"
+						}, {
+							"Effect": "Allow",
+							"Action": [
+								"ec2:DescribeInstances"
+							],
+							"Resource": "*"
+						}]
+					}
+				}]
+			}
+		},
+		"DescribeInstancesLambda": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "mylambda.lambda_handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Description": "This function will list instance IDs and their state.",
+				"Code": {
+					"S3Bucket": {
+						"Fn::Join": [".", ["surefoot", {
+							"Ref": "AWS::Region"
+						}]]
+					},
+					"S3Key": "lambda.zip"
+				},
+				"Runtime": "python2.7",
+				"Timeout": "120"
+			}
+		}
+	},
+	"Outputs": {
+		"LambdaS3Bucket": {
+			"Value": {
+				"Fn::Join": [
+					".", [
+						"surefoot", {
+							"Ref": "AWS::Region"
+						}
+					]
+				]
+			}
+		}
+	}
+}

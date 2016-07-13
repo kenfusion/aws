@@ -1,0 +1,96 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploy DescribeInstancesLambda",
+	"Resources": {
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "lambda.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Path": "/",
+				"Policies": [{
+					"PolicyName": "DescribeInstancePermissions",
+					"PolicyDocument": {
+						"Version": "2012-10-17",
+						"Statement": [{
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents"
+							],
+							"Resource": "arn:aws:logs:*:*:*"
+						}, {
+							"Effect": "Allow",
+							"Action": [
+								"ec2:DescribeInstances"
+							],
+							"Resource": "*"
+						}]
+					}
+				}]
+			}
+		},
+		"DescribeInstancesLambda": {
+			"Description": "This function will list instance IDs and their state.",
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.lambda_handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": ["\n", [
+							"import boto3                                                                     ",
+							"                                                                                 ",
+							"def lambda_handler(event, context):                                              ",
+							"  # create ec2 resource instance                                                 ",
+							"  ec2 = boto3.resource('ec2')                                                    ",
+							"                                                                                 ",
+							"  # gather list of instances                                                     ",
+							"  print 'Gathering list of instances...'                                         ",
+							"  instances = list(ec2.instances.all())                                          ",
+							"                                                                                 ",
+							"  # test if there are 0 instances                                                ",
+							"  if len(instances) == 0 :                                                       ",
+							"    print 'There are no instances.'                                              ",
+							"  else:                                                                          ",
+							"    # print out the id and state of each instance                                ",
+							"    print '{} instance(s) found:'.format(len(instances))                         ",
+							"    for instance in instances:                                                   ",
+							"      print 'Instance ID: {0} Instance State: {1}'.format(instance.id,           ",
+							"                                                          instance.state['Name'])"
+						]]
+					}
+				},
+				"Runtime": "python2.7",
+				"Timeout": "120"
+			}
+		}
+	},
+	"Outputs": {
+		"LambdaS3Bucket": {
+			"Value": {
+				"Fn::Join": [
+					".", [
+						"surefoot", {
+							"Ref": "AWS::Region"
+						}
+					]
+				]
+			}
+		}
+  }
+}
