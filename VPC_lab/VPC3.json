@@ -31,7 +31,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "myVPC"
+            "Value": "VPC3"
           }
         ]
       }
@@ -251,7 +251,7 @@
         },
         "NatGatewayId": {
           "Ref": "NAT"
-        }          
+        }
       },
       "DependsOn": "VPCGatewayAttachment"
     },
@@ -342,10 +342,10 @@
       "DependsOn" : "VPCGatewayAttachment",
       "Type" : "AWS::EC2::NatGateway",
       "Properties" : {
-        "AllocationId" : { 
+        "AllocationId" : {
           "Fn::GetAtt" : ["EIP", "AllocationId"]
          },
-        "SubnetId" : { 
+        "SubnetId" : {
           "Ref" : "SubnetB"
         }
       }
@@ -439,9 +439,9 @@
                                  "Value": {"Fn::GetAtt": ["PublicInstance", "PublicDnsName"]},
                                  "Description": "Public server DNS name"
                 },
-                "PrivateDnsName": {"Value": {"Fn::GetAtt": ["PublicInstance", "PrivateDnsName"]},
+                "PrivateDnsName": {"Value": {"Fn::GetAtt": ["PrivateInstance", "PrivateDnsName"]},
                                    "Description": "Private server internal DNS name"
                 }
         },
-  "Description": "VPC - Public/Private with NAT"
+  "Description": "VPC - Public/Private/NAT with instances and Lambda function"
 }

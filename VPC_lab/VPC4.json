@@ -51,7 +51,7 @@
 				"EnableDnsHostnames": "true",
 				"Tags": [{
 					"Key": "Name",
-					"Value": "myVPC"
+					"Value": "VPC4"
 				}]
 			}
 		},
@@ -484,5 +484,5 @@
 			"Description": "Private server internal DNS name"
 		}
 	},
-	"Description": "VPC - Public/Private with NAT"
+	"Description": "VPC - Public/Private/NAT with instances and Lambda function, parameterized"
 }

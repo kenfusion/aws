@@ -11,7 +11,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "myVPC"
+            "Value": "VPC1"
           }
         ]
       }
@@ -231,7 +231,7 @@
         },
         "GatewayId": {
           "Ref": "IGW"
-        }          
+        }
       },
       "DependsOn": "VPCGatewayAttachment"
     },
